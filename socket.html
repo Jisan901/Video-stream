@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <div>
+        <a href="#">#</a>
+        <h1>chats</h1>
+        <div id="chats">
+            
+        </div>
+        
+        <input type="text" name="inp" id="inp" />
+        <input type="text" name="rinp" id="rinp" placeholder="room id" />
+        <button id="butt">send</button>
+            <video controls  height="300" width="200" id="video"></video>
+
+        
+    </div>
+    <script type="text/javascript" charset="utf-8">
+                (function () { var script = document.createElement('script'); script.src="//cdn.jsdelivr.net/npm/eruda"; document.body.appendChild(script); script.onload = function () { eruda.init() } })();
+    </script>
+    <script src="/socket.io/socket.io.js" type="text/javascript" charset="utf-8">
+    </script>
+    <script type="text/javascript" charset="utf-8">
+        const socket = io()
+        const video = document.getElementById("video");
+        //const chatsDiv = document.getElementById('chats')
+        //const input = document.getElementById('inp')
+        //const button = document.getElementById('butt')
+        //const roominp = document.getElementById('rinp')
+        //const locator = new Locator('u',5,false,true,20)
+        
+        
+        
+        //roominp.onblur=()=>{
+          //  socket.emit('join_room',roominp.value)
+        //}
+        
+        /*button.onclick = ()=>{
+            locator.locate('jisan')
+            locator.oninterval=({position})=>{
+                let pose = [position.coords.latitude, position.coords.longitude]
+                socket.emit('send_loc',{text:pose,room:roominp.value})
+            }
+            
+        }*/
+        
+        
+            
+            //video.srcObject=mediaStream
+            //video.play()
+            
+            const mediaSource = new MediaSource();
+            const url = URL.createObjectURL(mediaSource);
+            //const video = document.getElementById("video");
+            video.src = url;
+            mediaSource.addEventListener("sourceopen",()=>{
+            const sourceBuffer = mediaSource.addSourceBuffer("video/webm; codecs=\"opus,vp8\"");
+            
+            sourceBuffer.addEventListener("updateend", appendToSourceBuffer);
+            
+                socket.on('receive',(data)=>{
+                    video.play()
+                    sourceBuffer.appendBuffer(data)
+                })
+            
+        function appendToSourceBuffer(blob)
+        {
+            video.play()
+            if (
+                mediaSource.readyState === "open" &&
+                sourceBuffer &&
+                sourceBuffer.updating === false&&
+                blob.arrayBuffer
+                
+            )
+            {
+            blob.arrayBuffer()
+                .then(res=>{
+                  sourceBuffer.appendBuffer(res)
+                    console.log(res);
+                })
+            }
+
+            // Limit the total buffer size to 20 minutes
+            // This way we don't run out of RAM
+           if (
+                video.buffered.length &&
+                video.buffered.end(0) - video.buffered.start(0) > 1200
+            )
+            {
+                sourceBuffer.remove(0, video.buffered.end(0) - 1200)
+            }
+        }
+                
+            })
+        
+        
+        
+    </script>
+</body>
+</html>

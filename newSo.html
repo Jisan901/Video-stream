@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <video controls height="300" width="200" id="video"></video>
+
+     <script src="/socket.io/socket.io.js" type="text/javascript" charset="utf-8">
+        
+    </script>
+    <script type="text/javascript" charset="utf-8">
+    const socket = io()
+        
+
+        
+        
+        
+    class Streamer{
+      constructor(stream, delay, stackLimit,type){
+        this.mediaStream = stream;
+        this.chunks = [];
+        this.stack = [];
+        this.currentStack=[];
+        this.onData = null;
+        this.delay = delay||3000;
+        this.stackLimit = stackLimit||5;
+        this.type = type||"";
+        this.recorder = new MediaRecorder(stream,{
+            mimeType: type,
+        });
+      }
+      stream(){
+        this.recorder.start();
+        const recorder = this.recorder
+        this.interval = setInterval(function() {
+            recorder.requestData();
+        }, this.delay);
+        this.recorder.ondataavailable = (e)=>{
+            this.chunks.push(e.data)
+            this.serializeStack(e.data)
+            if (this.onData) {
+                  this.onData(e.data)
+            }
+        }
+      }
+      getStreamData(){
+        return [this.stack,this.chunks]
+      }
+      serializeStack(data){
+          if (this.currentStack.length===this.stackLimit) {
+              this.stack.push(this.currentStack)
+              this.currentStack = [];
+          }
+          this.currentStack.push(data)
+      }
+      read(){
+          return this.stack.map((item)=>{
+              return new Blob(item,{type:this.type})
+          })
+      }
+      readFullStack(){
+          return new Blob(this.read(),{type:this.type})
+      }
+      readAsBase64(blob,callback){
+          const reader = new FileReader();
+          reader.readAsDataURL(blob)
+          reader.onloadend = function() {
+              var base64data = reader.result;
+              callback(base64data);
+          }
+      }
+  }
+  
+  
+ navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video:{
+              facingMode: "user"
+          }
+        })
+        .then((mediaStream) => {
+            
+            streamer = new Streamer(mediaStream,500,6,"video/webm; codecs=\"opus,vp8\"")
+            streamer.stream()
+            const video = document.getElementById("video");
+            //video.srcObject=mediaStream
+            //video.play()
+            setTimeout(function() {
+                console.log(streamer.getStreamData())
+                //streamer.readAsBase64(streamer.readFullStack("video/x-matroska;codecs=avc1,opus"),clb);
+                //clb(streamer.readFullStack("video/x-matroska;codecs=avc1,opus"))
+                
+            }, 10000);
+            
+            
+            const mediaSource = new MediaSource();
+            const url = URL.createObjectURL(mediaSource);
+            //const video = document.getElementById("video");
+            video.src = url;
+            mediaSource.addEventListener("sourceopen",()=>{
+            const sourceBuffer = mediaSource.addSourceBuffer("video/webm; codecs=\"opus,vp8\"");
+            console.log(sourceBuffer);
+            sourceBuffer.addEventListener("updateend", appendToSourceBuffer);
+            streamer.onData=(data)=>{
+                socket.emit('send',data)
+                //console.log(data)
+            }
+            
+                socket.on('receive',(data)=>{
+                    sourceBuffer.appendBuffer(data) 
+                    video.play()
+                })
+                
+        function appendToSourceBuffer(blob)
+        {
+            video.play()
+            if (
+                mediaSource.readyState === "open" &&
+                sourceBuffer &&
+                sourceBuffer.updating === false &&
+                blob.arrayBuffer
+                
+            )
+            {
+            blob.arrayBuffer()
+                .then(res=>{
+                  sourceBuffer.appendBuffer(res)
+                    console.log(res);
+                })
+            }
+
+            // Limit the total buffer size to 20 minutes
+            // This way we don't run out of RAM
+            if (
+                video.buffered.length &&
+                video.buffered.end(0) - video.buffered.start(0) > 1200
+            )
+            {
+                sourceBuffer.remove(0, video.buffered.end(0) - 1200)
+            }
+        }
+                
+            })
+        })
+</script>
+    
+        <script type="text/javascript" charset="utf-8">
+    </script>
+
+</body>
+</html>
